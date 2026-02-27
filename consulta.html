@@ -1,189 +1,122 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ADM Yuri Celulares - Profissional</title>
-    <style>
-        :root { --primary: #007bff; --bg: #0a0a0b; --card-bg: #161b22; --text: #f0f6fc; --border: #30363d; --danger: #f85149; --success: #2ea043; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 10px; margin: 0; }
-        
-        .search-container { margin-bottom: 15px; }
-        .search-box { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: #0d1117; color: #fff; font-size: 16px; outline: none; }
-        
-        .menu-topo { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-        .btn-topo { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; min-width: 100px; }
-        .btn-ativas { background: var(--primary); }
-        .btn-lixeira { background: #30363d; }
-        .btn-relatorio { background: #6f42c1; width: 100%; margin-bottom: 15px; font-size: 16px; }
-        
-        .os-card { background: var(--card-bg); border: 1px solid var(--border); padding: 15px; margin-bottom: 15px; border-radius: 12px; position: relative; border-left: 5px solid var(--primary); }
-        .status-badge { color: var(--primary); font-weight: bold; }
-        
-        .info-cliente-box { background: #0d1117; padding: 10px; border-radius: 8px; margin: 10px 0; font-size: 13px; border: 1px solid #21262d; }
-        .financeiro-resumo { background: rgba(46, 160, 67, 0.1); border: 1px dashed var(--success); padding: 8px; border-radius: 6px; margin-top: 10px; font-size: 13px; color: #85e89d; }
-
-        button { width: 100%; padding: 12px; margin: 4px 0; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        .btn-wpp { background: var(--success); color: white; }
-        .btn-financeiro { background: #d29922; color: #000; }
-        .btn-andamento { background: #ff8c00; color: white; }
-        .btn-pronto { background: var(--success); color: white; }
-
-        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); overflow-y:auto; padding:20px; box-sizing:border-box; z-index:1000; }
-        .modal-content { background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border); max-width: 500px; margin: auto; }
-        
-        input, select, textarea { width: 100%; padding: 10px; margin: 8px 0; border-radius: 6px; border: 1px solid var(--border); background: #0d1117; color: white; box-sizing: border-box; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; color: #fff; }
-        th, td { border: 1px solid #333; padding: 6px; text-align: center; }
-        
-        .lucro-destaque { font-size: 18px; color: var(--success); font-weight: bold; text-align: center; margin: 15px 0; border: 1px solid var(--success); padding: 10px; border-radius: 8px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel Técnico - Yuri Celulares</title>
+<style>
+:root { --primary: #007bff; --bg: #0a0a0b; --card-bg: #161b22; --text: #f0f6fc; --border: #30363d; --danger: #f85149; --success: #2ea043; }
+body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 10px; margin: 0; }
+input, select, textarea, button { box-sizing:border-box; }
+.modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); overflow-y:auto; padding:20px; z-index:1000; }
+.modal-content { background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border); max-width: 500px; margin:auto; }
+.os-card { background: var(--card-bg); border:1px solid var(--border); padding:15px; margin-bottom:15px; border-radius:12px; position:relative; border-left:5px solid var(--primary); }
+.status-badge { color: var(--primary); font-weight:bold; }
+</style>
 </head>
 <body>
 
-    <button class="btn-topo btn-relatorio" onclick="verRelatorioMensal()">📊 VER RELATÓRIO DE LUCROS (MÊS)</button>
+<div id="loginBox">
+    <h2>Login Técnico</h2>
+    <input type="email" id="email" placeholder="E-mail">
+    <input type="password" id="senha" placeholder="Senha">
+    <button onclick="login()">Entrar</button>
+</div>
 
+<div id="painel" style="display:none;">
+    <button onclick="gerarLinkCliente()">📋 Gerar Link Cadastro Cliente</button>
+    <button onclick="verRelatorioMensal()">📊 Relatório Mensal</button>
     <div class="menu-topo">
-        <button class="btn-topo btn-ativas" onclick="carregar('/todas-os', false)">ATIVAS</button>
-        <button class="btn-topo btn-lixeira" onclick="carregar('/lixeira-os', true)">LIXEIRA</button>
+        <button onclick="carregar(false)">ATIVAS</button>
+        <button onclick="carregar(true)">LIXEIRA</button>
     </div>
-
     <div class="search-container">
-        <input type="text" id="inputBusca" class="search-box" placeholder="🔍 Buscar por Nome, CPF ou Modelo..." onkeyup="filtrarOS()">
+        <input type="text" id="inputBusca" placeholder="🔍 Buscar por Nome, CPF ou Modelo..." onkeyup="filtrarOS()">
     </div>
-
     <div id="lista"></div>
+</div>
 
-    <div id="modalGeral" class="modal">
-        <div class="modal-content">
-            <h2 id="tituloModal" style="color:var(--primary); margin-top:0;"></h2>
-            <div id="corpoModal"></div>
-            <button style="background:#444;" onclick="fecharModal()">FECHAR</button>
-        </div>
+<div id="modalGeral" class="modal">
+    <div class="modal-content">
+        <h2 id="tituloModal"></h2>
+        <div id="corpoModal"></div>
+        <button onclick="fecharModal()">FECHAR</button>
     </div>
+</div>
 
-    <input type="file" id="fotoInput" accept="image/*" capture="environment" style="display:none" onchange="uploadFoto(this)">
+<script>
+let tecnicoId = null;
+let osSelecionada = null;
+let modoLixeira = false;
 
-    <script>
-        let osSelecionada = null;
-        let modoLixeira = false;
+async function login() {
+    const email = document.getElementById('email').value;
+    const senha = document.getElementById('senha').value;
+    const res = await fetch('/login-tecnico', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,senha}) });
+    if(res.status===200){
+        const data = await res.json();
+        tecnicoId = data.tecnicoId;
+        localStorage.setItem('tecnicoId', tecnicoId);
+        document.getElementById('loginBox').style.display='none';
+        document.getElementById('painel').style.display='block';
+        carregar(false);
+    } else alert('Credenciais inválidas');
+}
 
-        async function carregar(url = '/todas-os', isLixeira = false) {
-            modoLixeira = isLixeira;
-            const res = await fetch(url);
-            const dados = await res.json();
-            document.getElementById('lista').innerHTML = dados.map(os => {
-                const lucro = (os.valor_total || 0) - ((os.valor_peca || 0) + (os.gasto_gasolina || 0));
-                return `
-                <div class="os-card">
-                    <button onclick="acaoExcluir('${os.cpf}', ${os.data_ms})" style="position:absolute; right:10px; top:10px; width:auto; background:none; color:#f44; font-size:20px;">🗑️</button>
-                    <h3 style="margin:0;">${os.nome} - <small>${os.modelo}</small></h3>
-                    
-                    <div class="info-cliente-box">
-                        <b>📍 End:</b> ${os.endereco || 'N/A'}<br>
-                        <b>🆔 CPF:</b> ${os.cpf} | <b>📱 Whats:</b> ${os.whatsapp}
-                    </div>
+function gerarLinkCliente() {
+    const linkCadastro = `${window.location.origin}/cliente?tecnicoId=${tecnicoId}`;
+    prompt("Copie o link para o cliente:", linkCadastro);
+}
 
-                    <div class="financeiro-resumo">
-                        💰 <b>Cobrado:</b> R$ ${os.valor_total || 0} | 📈 <b>Lucro:</b> R$ ${lucro.toFixed(2)}
-                    </div>
+async function carregar(isLixeira=false) {
+    modoLixeira=isLixeira;
+    const res = await fetch(`/ordens/${tecnicoId}`);
+    const dados = await res.json();
+    document.getElementById('lista').innerHTML = dados.map(os=>{
+        const lucro = (os.valor_total||0) - ((os.valor_peca||0)+(os.gasto_gasolina||0));
+        return `<div class="os-card">
+            <button onclick="acaoExcluir('${os.cpf}',${os.data_ms})" style="position:absolute;right:10px;top:10px;">🗑️</button>
+            <h3>${os.nome} - <small>${os.modelo}</small></h3>
+            <div>📍 ${os.endereco||'N/A'} | 🆔 ${os.cpf} | 📱 ${os.whatsapp}</div>
+            <div>💰 ${os.valor_total||0} | Lucro: ${lucro.toFixed(2)}</div>
+            <button onclick="atualizarStatus('${os.cpf}',${os.data_ms},'Em Andamento')">EM ANDAMENTO</button>
+            <button onclick="finalizarGarantia('${os.cpf}',${os.data_ms})">PRONTO/GARANTIA</button>
+        </div>`;
+    }).reverse().join('');
+}
 
-                    <button class="btn-wpp" onclick="window.open('https://wa.me/55${os.whatsapp.replace(/\D/g,'')}')">💬 WHATSAPP</button>
-                    <button class="btn-financeiro" onclick="abrirFinanceiro(${JSON.stringify(os).replace(/"/g, '&quot;')})">💰 FINANCEIRO / OBS</button>
-                    <button style="background:#6f42c1; color:white;" onclick="abrirCamera('${os.cpf}', ${os.data_ms})">📷 FOTOS (${os.fotos ? os.fotos.length : 0}/10)</button>
-                    <button class="btn-andamento" onclick="atualizarStatus('${os.cpf}', ${os.data_ms}, 'Em Andamento')">EM ANDAMENTO</button>
-                    <button class="btn-pronto" onclick="finalizarGarantia('${os.cpf}', ${os.data_ms})">PRONTO / GARANTIA</button>
-                </div>`}).reverse().join('');
-        }
+function filtrarOS() {
+    const t = document.getElementById('inputBusca').value.toLowerCase();
+    document.querySelectorAll('.os-card').forEach(c=>c.style.display=c.innerText.toLowerCase().includes(t)?"block":"none");
+}
 
-        function abrirFinanceiro(os) {
-            osSelecionada = os;
-            document.getElementById('tituloModal').innerText = "FINANCEIRO & OBS";
-            document.getElementById('corpoModal').innerHTML = `
-                <label>Custo da Peça (R$)</label>
-                <input type="number" id="f_peca" value="${os.valor_peca || 0}">
-                <label>Gasto com Gasolina (R$)</label>
-                <input type="number" id="f_gaso" value="${os.gasto_gasolina || 0}">
-                <label>Fornecedor</label>
-                <input type="text" id="f_forn" value="${os.fornecedor || ''}" placeholder="Ex: China da 25">
-                <label>Valor Cobrado do Cliente (R$)</label>
-                <input type="number" id="f_total" value="${os.valor_total || 0}">
-                <label>Observações Internas (Só você vê)</label>
-                <textarea id="f_obs" rows="3">${os.obs_interna || ''}</textarea>
-                <button class="btn-pronto" onclick="salvarFinanceiro()">SALVAR DADOS</button>
-            `;
-            document.getElementById('modalGeral').style.display = 'block';
-        }
+async function atualizarStatus(cpf,data_ms,status){
+    await fetch('/atualizar-os',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cpf,data_ms,status})});
+    carregar(modoLixeira);
+}
 
-        async function salvarFinanceiro() {
-            const dados = {
-                cpf: osSelecionada.cpf,
-                data_ms: osSelecionada.data_ms,
-                valor_peca: parseFloat(document.getElementById('f_peca').value),
-                gasto_gasolina: parseFloat(document.getElementById('f_gaso').value),
-                fornecedor: document.getElementById('f_forn').value,
-                valor_total: parseFloat(document.getElementById('f_total').value),
-                obs_interna: document.getElementById('f_obs').value
-            };
-            await fetch('/atualizar-os', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(dados) });
-            fecharModal();
-            carregar();
-        }
+async function finalizarGarantia(cpf,data_ms){
+    const dias = prompt("Dias de garantia?","90");
+    if(dias) atualizarStatus(cpf,data_ms,'Pronto');
+}
 
-        async function verRelatorioMensal() {
-            const res = await fetch('/relatorio-mensal');
-            const r = await res.json();
-            document.getElementById('tituloModal').innerText = `RELATÓRIO DE ${r.mes.toUpperCase()}`;
-            document.getElementById('corpoModal').innerHTML = `
-                <div style="text-align:left; font-size:16px; line-height:2;">
-                    📱 Serviços realizados: <b>${r.servicosRealizados}</b><br>
-                    💵 Entrada Bruta: <span style="color:#85e89d">R$ ${r.totalBruto.toFixed(2)}</span><br>
-                    📉 Gasto com Peças: <span style="color:#f85149">R$ ${r.totalPecas.toFixed(2)}</span><br>
-                    ⛽ Gasto com Gasolina: <span style="color:#f85149">R$ ${r.totalGasolina.toFixed(2)}</span>
-                    <div class="lucro-destaque">LUCRO REAL: R$ ${r.lucroLiquido.toFixed(2)}</div>
-                </div>
-            `;
-            document.getElementById('modalGeral').style.display = 'block';
-        }
+async function acaoExcluir(cpf,data_ms){
+    if(confirm(modoLixeira?"Apagar DEFINITIVO?":"Mover para Lixeira?")){
+        await fetch('/atualizar-os',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cpf,data_ms,excluido:!modoLixeira,deletarReal:modoLixeira})});
+        carregar(modoLixeira);
+    }
+}
 
-        function fecharModal() { document.getElementById('modalGeral').style.display = 'none'; }
+function fecharModal(){document.getElementById('modalGeral').style.display='none';}
 
-        function filtrarOS() {
-            const t = document.getElementById('inputBusca').value.toLowerCase();
-            document.querySelectorAll('.os-card').forEach(c => c.style.display = c.innerText.toLowerCase().includes(t) ? "block" : "none");
-        }
+async function verRelatorioMensal(){
+    const res=await fetch('/relatorio-mensal');
+    const r=await res.json();
+    document.getElementById('tituloModal').innerText=`RELATÓRIO ${r.mes.toUpperCase()}`;
+    document.getElementById('corpoModal').innerHTML=`Serviços: ${r.servicosRealizados}<br>Bruto: ${r.totalBruto}<br>Lucro: ${r.lucroLiquido}`;
+    document.getElementById('modalGeral').style.display='block';
+}
+</script>
 
-        async function atualizarStatus(cpf, data_ms, status, g_total="", g_inicio="") {
-            await fetch('/atualizar-os', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ cpf, data_ms, status, garantia_total: g_total, garantia_inicio: g_inicio }) });
-            carregar(modoLixeira ? '/lixeira-os' : '/todas-os', modoLixeira);
-        }
-
-        async function finalizarGarantia(cpf, data_ms) {
-            const d = prompt("Dias de Garantia?", "90");
-            if(d) atualizarStatus(cpf, data_ms, 'Pronto', d, Date.now());
-        }
-
-        function abrirCamera(cpf, data_ms) { osSelecionada = { cpf, data_ms }; document.getElementById('fotoInput').click(); }
-
-        async function uploadFoto(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    await fetch('/atualizar-os', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ ...osSelecionada, novaFoto: e.target.result }) });
-                    carregar();
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        async function acaoExcluir(cpf, data_ms) {
-            if(confirm(modoLixeira ? "Apagar DEFINITIVO?" : "Mover para Lixeira?")) {
-                await fetch('/atualizar-os', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ cpf, data_ms, excluido: !modoLixeira, deletarReal: modoLixeira }) });
-                carregar(modoLixeira ? '/lixeira-os' : '/todas-os', modoLixeira);
-            }
-        }
-
-        carregar();
-    </script>
 </body>
 </html>
