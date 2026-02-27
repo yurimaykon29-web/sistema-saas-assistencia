@@ -1,0 +1,13 @@
+{
+  "name": "sistema-saas-assistencia",
+  "version": "1.0.0",
+  "description": "Sistema SaaS Assistencia Tecnica",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "lokijs": "^1.5.12"
+  }
+}
