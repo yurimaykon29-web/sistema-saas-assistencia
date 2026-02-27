@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Yuri Celulares - Cadastro</title>
+    <style>
+        :root {
+            --primary: #007bff; /* Azul Royal Profissional */
+            --bg: #0a0a0b;
+            --card-bg: #161b22;
+            --text: #f0f6fc;
+            --input-bg: #0d1117;
+            --border: #30363d;
+        }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
+        .card { background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0,0,0,0.5); max-width: 500px; margin: auto; }
+        
+        h2 { color: var(--primary); text-align: center; font-size: 20px; letter-spacing: 1px; margin-bottom: 20px; }
+        h3 { color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-top: 25px; font-size: 16px; text-transform: uppercase; }
+        
+        input[type="text"] { width: 100%; padding: 14px; margin: 10px 0; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: #fff; box-sizing: border-box; font-size: 16px; }
+        input[type="text"]:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 8px rgba(0, 123, 255, 0.3); }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+        th { background: #0d1117; color: var(--primary); padding: 10px; border: 1px solid var(--border); }
+        td { border: 1px solid var(--border); padding: 8px; text-align: center; }
+        .td-left { text-align: left; width: 45%; color: #c9d1d9; }
+
+        button { width: 100%; background: var(--primary); color: #fff; padding: 16px; border: none; border-radius: 8px; font-weight: bold; margin-top: 20px; cursor: pointer; font-size: 16px; transition: 0.2s; }
+        button:active { transform: scale(0.98); opacity: 0.9; }
+
+        #patternContainer { position: relative; width: 280px; height: 280px; margin: 20px auto; background: #0d1117; border-radius: 15px; border: 2px solid var(--border); overflow: hidden; }
+        canvas { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 3; }
+        .dots-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; padding: 35px; position: relative; z-index: 2; }
+        .dot { width: 40px; height: 40px; background: #161b22; border: 2px solid var(--border); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; color: #8b949e; transition: 0.2s; }
+        .dot.active { background: var(--primary); color: #fff; border-color: #fff; box-shadow: 0 0 20px rgba(0, 123, 255, 0.6); }
+
+        .checkbox-container { margin-top: 20px; background: #0d1117; padding: 15px; border-radius: 8px; border-left: 4px solid #f85149; font-size: 13px; display: flex; align-items: center; gap: 10px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>YURI CELULARES</h2>
+        <p style="text-align:center; color:#8b949e; font-size:12px; margin-top:-15px;">CHECK-LIST DE ENTRADA</p>
+        
+        <input type="text" id="nome" placeholder="Nome Completo">
+        <input type="text" id="whatsapp" placeholder="WhatsApp (com DDD)">
+        <input type="text" id="cpf" placeholder="CPF">
+        <input type="text" id="endereco" placeholder="Endereço Completo">
+        <input type="text" id="modelo" placeholder="Modelo do Aparelho">
+        
+        <p style="text-align:center; margin-top:20px; font-weight:bold; color:var(--primary);">DESENHE A SENHA:</p>
+        <div id="patternContainer">
+            <canvas id="canvas"></canvas>
+            <div class="dots-grid">
+                <div class="dot" data-index="1">1</div><div class="dot" data-index="2">2</div><div class="dot" data-index="3">3</div>
+                <div class="dot" data-index="4">4</div><div class="dot" data-index="5">5</div><div class="dot" data-index="6">6</div>
+                <div class="dot" data-index="7">7</div><div class="dot" data-index="8">8</div><div class="dot" data-index="9">9</div>
+            </div>
+        </div>
+        <button type="button" onclick="limparSenha()" style="background:#30363d; padding:10px; margin-top:0; font-size:12px;">LIMPAR DESENHO</button>
+
+        <h3>ESTÉTICA</h3>
+        <table id="tabEstetica"></table>
+        <h3>⚙️ FUNCIONAMENTO</h3>
+        <table id="tabFunc"></table>
+        <h3>🔋 BATERIA</h3>
+        <table id="tabBateria"></table>
+
+        <div class="checkbox-container">
+            <input type="checkbox" id="desligado" style="width:20px; height:20px;"> 
+            <span>🔒 <b>APARELHO DESLIGADO:</b> Entregue sem teste prévio.</span>
+        </div>
+
+        <button onclick="salvar()">GERAR ORDEM DE SERVIÇO</button>
+    </div>
+
+    <script>
+        const estetica = ["Tela trincada", "Tela arranhada", "Carcaça amassada", "Botão Power", "Botões Volume", "Câmera traseira (lente)", "Câmera frontal", "Vidro traseiro", "Entrada do carregador", "Bandeja do chip", "Aparelho já foi aberto", "Sinais de oxidação"];
+        const funcionamento = ["Liga/Desliga", "Touch funcionando", "Display sem manchas", "Wi-Fi", "Bluetooth", "Rede (Sinal)", "Alto-falante", "Microfone", "Vibração", "Câmera traseira", "Câmera frontal", "Flash", "GPS", "Sensor proximidade", "Sensor digital", "Reconhecimento facial"];
+        const bateria = ["Carrega normal", "Esquenta ao carregar", "Porcentagem estável", "Saúde bateria visível"];
+
+        function montarTabela(lista, id) {
+            const tab = document.getElementById(id);
+            tab.innerHTML = '<tr><th>ITEM</th><th>OK</th><th>NOK</th><th>N/A</th></tr>';
+            lista.forEach(item => {
+                tab.innerHTML += `<tr><td class="td-left">${item}</td><td><input type="radio" name="${item}" value="OK"></td><td><input type="radio" name="${item}" value="NOK"></td><td><input type="radio" name="${item}" value="N/A" checked></td></tr>`;
+            });
+        }
+        montarTabela(estetica, 'tabEstetica');
+        montarTabela(funcionamento, 'tabFunc');
+        montarTabela(bateria, 'tabBateria');
+
+        let caminho = []; let desenhando = false;
+        const canvas = document.getElementById('canvas'); const ctx = canvas.getContext('2d');
+        const container = document.getElementById('patternContainer');
+        window.onload = () => { canvas.width = container.offsetWidth; canvas.height = container.offsetHeight; };
+        function limparSenha() { caminho = []; document.querySelectorAll('.dot').forEach(d => d.classList.remove('active')); ctx.clearRect(0,0,canvas.width,canvas.height); }
+        
+        const getPoint = (e) => {
+            const rect = container.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return document.elementFromPoint(clientX, clientY);
+        }
+
+        const handleMove = (e) => {
+            if(!desenhando) return;
+            const point = getPoint(e);
+            if(point && point.classList.contains('dot')) {
+                const idx = point.dataset.index;
+                if(!caminho.includes(idx)) { caminho.push(idx); point.classList.add('active'); desenhar(); }
+            }
+        };
+
+        container.addEventListener('touchstart', (e) => { desenhando = true; handleMove(e); e.preventDefault(); }, {passive: false});
+        container.addEventListener('touchmove', (e) => { handleMove(e); e.preventDefault(); }, {passive: false});
+        container.addEventListener('touchend', () => { desenhando = false; });
+
+        function desenhar() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            if(caminho.length<2) return;
+            ctx.beginPath(); ctx.strokeStyle='#007bff'; ctx.lineWidth=6; ctx.lineJoin='round'; ctx.lineCap='round';
+            caminho.forEach((idx, i) => {
+                const dot = document.querySelector(`.dot[data-index="${idx}"]`);
+                const x = dot.offsetLeft + dot.offsetWidth/2; const y = dot.offsetTop + dot.offsetHeight/2;
+                if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+            });
+            ctx.stroke();
+        }
+
+        async function salvar() {
+            let checks = {};
+            [...estetica, ...funcionamento, ...bateria].forEach(item => { checks[item] = document.querySelector(`input[name="${item}"]:checked`).value; });
+            const dados = {
+                nome: document.getElementById('nome').value, 
+                whatsapp: document.getElementById('whatsapp').value, 
+                cpf: document.getElementById('cpf').value,
+                endereco: document.getElementById('endereco').value, // Envia o endereço
+                modelo: document.getElementById('modelo').value, 
+                senha_celular: caminho.join('-'), 
+                checklist_cliente: checks, 
+                desligado: document.getElementById('desligado').checked,
+                fotos: [] 
+            };
+            if(!dados.nome || !dados.cpf) { alert("Preencha Nome e CPF!"); return; }
+            const res = await fetch('/salvar', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(dados) });
+            const info = await res.json();
+            localStorage.setItem('yuri_cpf', info.cpf);
+            location.href = '/cliente';
+        }
+    </script>
+</body>
+</html>
