@@ -14,7 +14,6 @@ const db = new loki('yuri_celulares.db', {
     autosaveInterval: 1000,
     autoload: true,
     autoloadCallback: () => {
-        // coleções
         ordens = db.getCollection('ordens') || db.addCollection('ordens');
         tecnicos = db.getCollection('tecnicos') || db.addCollection('tecnicos');
     }
@@ -28,34 +27,51 @@ app.get('/cliente', (req, res) => res.sendFile(path.join(__dirname, 'cliente.htm
 
 // --- CADASTRO DE TÉCNICO ---
 app.post('/cadastrar-tecnico', (req, res) => {
-    const { nome, email, senha } = req.body;
-    const existe = tecnicos.findOne({ email });
-    if (existe) return res.status(400).json({ mensagem: "E-mail já cadastrado" });
+    const { nome, email, senha, plano } = req.body;
+    if (tecnicos.findOne({ email })) return res.status(400).json({ mensagem: "E-mail já cadastrado" });
 
     const novo = {
-        id: Date.now().toString(), // ID único
+        id: Date.now().toString(),
         nome,
         email,
         senha,
-        plano: "gratuito",
+        plano: plano || "gratuito",
         ativo: true
     };
     tecnicos.insert(novo);
     res.json({ mensagem: "Técnico cadastrado", tecnicoId: novo.id });
 });
 
-// --- LOGIN TÉCNICO ---
+// --- LOGIN DE TÉCNICO ---
 app.post('/login-tecnico', (req, res) => {
     const { email, senha } = req.body;
     const tecnico = tecnicos.findOne({ email, senha, ativo: true });
     if (!tecnico) return res.status(401).json({ mensagem: "Credenciais inválidas" });
+
     res.json({ mensagem: "OK", tecnicoId: tecnico.id, nome: tecnico.nome });
 });
 
-// SALVAR NOVA ORDEM (CLIENTE)
+// --- GERAR LINKS AUTOMÁTICOS ---
+app.get('/gerar-link/:tecnicoId/:tipo', (req, res) => {
+    const { tecnicoId, tipo } = req.params;
+    const base = req.protocol + '://' + req.get('host');
+
+    let link;
+    if (tipo === 'cadastro') {
+        link = `${base}/cliente?tec=${tecnicoId}`;
+    } else if (tipo === 'acompanhamento') {
+        link = `${base}/cliente/acompanhar?tec=${tecnicoId}`;
+    } else {
+        return res.status(400).json({ mensagem: "Tipo de link inválido" });
+    }
+
+    res.json({ link });
+});
+
+// --- SALVAR NOVA ORDEM ---
 app.post('/salvar', (req, res) => {
     const cpfLimpo = req.body.cpf.replace(/\D/g, "");
-    const { tecnicoId } = req.body; // ID do técnico que vai receber a OS
+    const { tecnicoId } = req.body;
     if (!tecnicoId) return res.status(400).json({ mensagem: "Técnico não definido" });
 
     const novaEntrada = {
@@ -77,36 +93,36 @@ app.post('/salvar', (req, res) => {
     res.json({ mensagem: "OK", cpf: cpfLimpo });
 });
 
-// BUSCAR ORDENS DO TÉCNICO LOGADO
+// --- BUSCAR ORDENS DO TÉCNICO ---
 app.get('/ordens/:tecnicoId', (req, res) => {
     const tecnicoId = req.params.tecnicoId;
     res.json(ordens.find({ excluido: false, tecnicoId }));
 });
 
-// BUSCAR HISTÓRICO DE UM CLIENTE
+// --- HISTÓRICO DE UM CLIENTE ---
 app.get('/historico/:cpf', (req, res) => {
     const cpf = req.params.cpf.replace(/\D/g, "");
     res.json(ordens.find({ cpf }));
 });
 
-// ATUALIZAR ORDEM (ADM / TÉCNICO)
+// --- ATUALIZAR ORDEM ---
 app.post('/atualizar-os', (req, res) => {
     const os = ordens.findOne({ cpf: req.body.cpf, data_ms: req.body.data_ms });
-    if (os) {
-        if (req.body.deletarReal === true) {
-            ordens.remove(os);
-        } else {
-            if (req.body.novaFoto) {
-                if (!os.fotos) os.fotos = [];
-                if (os.fotos.length < 10) os.fotos.push(req.body.novaFoto);
-                delete req.body.novaFoto;
-            }
-            Object.assign(os, req.body);
-            ordens.update(os);
+    if (!os) return res.status(404).send();
+
+    if (req.body.deletarReal === true) {
+        ordens.remove(os);
+    } else {
+        if (req.body.novaFoto) {
+            if (!os.fotos) os.fotos = [];
+            if (os.fotos.length < 10) os.fotos.push(req.body.novaFoto);
+            delete req.body.novaFoto;
         }
-        db.saveDatabase();
-        res.json({ mensagem: "OK" });
-    } else { res.status(404).send(); }
+        Object.assign(os, req.body);
+        ordens.update(os);
+    }
+    db.saveDatabase();
+    res.json({ mensagem: "OK" });
 });
 
 app.listen(3000, () => console.log("🚀 Sistema multi-técnico ativo!"));
