@@ -1,103 +1,133 @@
 const express = require('express');
 const path = require('path');
 const loki = require('lokijs');
-
+const bcrypt = require('bcrypt'); // para senhas
 const app = express();
 
-// LIMITE PARA SUPORTAR FOTOS E DADOS DO FINANCEIRO
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ limit: '20mb', extended: true }));
 
-// Banco de dados
-const db = new loki('yuri_celulares.db', {
-    autosave: true,
-    autosaveInterval: 1000,
-    autoload: true,
-    autoloadCallback: () => {
-        ordens = db.getCollection('ordens') || db.addCollection('ordens');
-        tecnicos = db.getCollection('tecnicos') || db.addCollection('tecnicos');
-    }
-});
+// DB
+const db = new loki('yuri_celulares.db', { autosave: true, autosaveInterval: 1000, autoload: true, autoloadCallback: initDB });
 let ordens, tecnicos;
 
-// ROTAS DE PÁGINAS
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/painel', (req, res) => res.sendFile(path.join(__dirname, 'consulta.html')));
-app.get('/cliente', (req, res) => res.sendFile(path.join(__dirname, 'cliente.html')));
+function initDB() {
+    ordens = db.getCollection('ordens') || db.addCollection('ordens');
+    tecnicos = db.getCollection('tecnicos') || db.addCollection('tecnicos');
 
-// --- CADASTRO DE TÉCNICO ---
-app.post('/cadastrar-tecnico', (req, res) => {
+    // --- USUÁRIO ADMIN INICIAL ---
+    if (!tecnicos.findOne({ email: "admin@yuri.com" })) {
+        bcrypt.hash("SenhaADM123", 10).then(hash => {
+            tecnicos.insert({ 
+                id: Date.now(), 
+                nome: "ADMIN", 
+                email: "admin@yuri.com", 
+                senha: hash 
+            });
+            db.saveDatabase();
+            console.log("Usuário ADM criado: admin@yuri.com / SenhaADM123");
+        });
+    }
+}
+
+// ---- ROTAS DE PÁGINAS ----
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ---- LOGIN / CADASTRO TECNICO ----
+app.post('/cadastrar-tecnico', async (req, res) => {
     const { nome, email, senha } = req.body;
-    const existe = tecnicos.findOne({ email });
-    if (existe) return res.status(400).json({ mensagem: "E-mail já cadastrado" });
-
-    const novo = {
-        id: Date.now().toString(), // ID único
-        nome,
-        email,
-        senha,
-        plano: "gratuito",
-        ativo: true
-    };
+    if(tecnicos.findOne({ email })) return res.status(400).json({ erro: "Email já cadastrado" });
+    const hash = await bcrypt.hash(senha, 10);
+    const novo = { id: Date.now(), nome, email, senha: hash };
     tecnicos.insert(novo);
-    res.json({ mensagem: "Técnico cadastrado", tecnicoId: novo.id });
+    db.saveDatabase();
+    res.json({ mensagem: "OK", tecnicoId: novo.id });
 });
 
-// --- LOGIN TÉCNICO ---
-app.post('/login-tecnico', (req, res) => {
+app.post('/login-tecnico', async (req, res) => {
     const { email, senha } = req.body;
-    const tecnico = tecnicos.findOne({ email, senha, ativo: true });
-    if (!tecnico) return res.status(401).json({ mensagem: "Credenciais inválidas" });
-    res.json({ mensagem: "OK", tecnicoId: tecnico.id, nome: tecnico.nome });
+    const t = tecnicos.findOne({ email });
+    if(!t) return res.status(401).json({ erro: "Usuário não encontrado" });
+    const ok = await bcrypt.compare(senha, t.senha);
+    if(ok) res.json({ tecnicoId: t.id, nome: t.nome });
+    else res.status(401).json({ erro: "Senha incorreta" });
 });
 
-// SALVAR NOVA ORDEM (CLIENTE)
+// ---- SALVAR ORDEM (CLIENTE) ----
 app.post('/salvar', (req, res) => {
     const cpfLimpo = req.body.cpf.replace(/\D/g, "");
-    const { tecnicoId } = req.body; // ID do técnico que vai receber a OS
-    if (!tecnicoId) return res.status(400).json({ mensagem: "Técnico não definido" });
-
-    const novaEntrada = {
-        ...req.body,
-        cpf: cpfLimpo,
-        excluido: false,
-        data_ms: Date.now(),
-        data_registro: new Date().toLocaleString('pt-BR'),
+    const novaEntrada = { 
+        ...req.body, 
+        cpf: cpfLimpo, 
+        excluido: false, 
+        data_ms: Date.now(), 
+        data_registro: new Date().toLocaleString('pt-BR'), 
         status: 'A caminho da loja',
         fotos: [],
-        tecnicoId,
         valor_peca: 0,
         gasto_gasolina: 0,
         fornecedor: "",
         valor_total: 0,
-        obs_interna: ""
+        obs_interna: "",
+        tecnicoId: req.body.tecnicoId || null
     };
     ordens.insert(novaEntrada);
+    db.saveDatabase();
     res.json({ mensagem: "OK", cpf: cpfLimpo });
 });
 
-// BUSCAR ORDENS DO TÉCNICO LOGADO
-app.get('/ordens/:tecnicoId', (req, res) => {
-    const tecnicoId = req.params.tecnicoId;
+// ---- BUSCAR ORDENS ----
+app.get('/todas-os/:tecnicoId', (req, res) => {
+    const tecnicoId = parseInt(req.params.tecnicoId);
     res.json(ordens.find({ excluido: false, tecnicoId }));
 });
-
-// BUSCAR HISTÓRICO DE UM CLIENTE
+app.get('/lixeira-os/:tecnicoId', (req, res) => {
+    const tecnicoId = parseInt(req.params.tecnicoId);
+    res.json(ordens.find({ excluido: true, tecnicoId }));
+});
 app.get('/historico/:cpf', (req, res) => {
     const cpf = req.params.cpf.replace(/\D/g, "");
-    res.json(ordens.find({ cpf }));
+    const tecnicoId = req.query.tecnicoId ? parseInt(req.query.tecnicoId) : null;
+    let filtro = { cpf };
+    if(tecnicoId) filtro.tecnicoId = tecnicoId;
+    res.json(ordens.find(filtro));
 });
 
-// ATUALIZAR ORDEM (ADM / TÉCNICO)
+// ---- RELATÓRIO MENSAL ----
+app.get('/relatorio-mensal/:tecnicoId', (req, res) => {
+    const tecnicoId = parseInt(req.params.tecnicoId);
+    const agora = new Date();
+    const mesAtual = agora.getMonth();
+    const anoAtual = agora.getFullYear();
+
+    const todas = ordens.find({ excluido: false, tecnicoId });
+    
+    let totalBruto = 0, totalPecas = 0, totalGasolina = 0, servicosRealizados = 0;
+
+    todas.forEach(os => {
+        const dataOS = new Date(os.data_ms);
+        if(dataOS.getMonth() === mesAtual && dataOS.getFullYear() === anoAtual){
+            totalBruto += parseFloat(os.valor_total || 0);
+            totalPecas += parseFloat(os.valor_peca || 0);
+            totalGasolina += parseFloat(os.gasto_gasolina || 0);
+            servicosRealizados++;
+        }
+    });
+
+    const lucroLiquido = totalBruto - (totalPecas + totalGasolina);
+    res.json({ mes: agora.toLocaleString('pt-BR', { month: 'long' }), totalBruto, totalPecas, totalGasolina, lucroLiquido, servicosRealizados });
+});
+
+// ---- ATUALIZAR ORDEM ----
 app.post('/atualizar-os', (req, res) => {
     const os = ordens.findOne({ cpf: req.body.cpf, data_ms: req.body.data_ms });
-    if (os) {
-        if (req.body.deletarReal === true) {
+    if(os){
+        if(req.body.deletarReal === true){
             ordens.remove(os);
         } else {
-            if (req.body.novaFoto) {
-                if (!os.fotos) os.fotos = [];
-                if (os.fotos.length < 10) os.fotos.push(req.body.novaFoto);
+            if(req.body.novaFoto){
+                if(!os.fotos) os.fotos = [];
+                if(os.fotos.length < 10) os.fotos.push(req.body.novaFoto);
                 delete req.body.novaFoto;
             }
             Object.assign(os, req.body);
@@ -105,7 +135,7 @@ app.post('/atualizar-os', (req, res) => {
         }
         db.saveDatabase();
         res.json({ mensagem: "OK" });
-    } else { res.status(404).send(); }
+    } else res.status(404).send();
 });
 
-app.listen(3000, () => console.log("🚀 Sistema multi-técnico ativo!"));
+app.listen(3000, () => console.log("🚀 SISTEMA YURI CELULARES V2.0 - LOGIN E LINK ATIVO"));
